@@ -1,5 +1,7 @@
 package com.example.running;
 
+import java.util.List;
+
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -27,12 +29,10 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 public class ActivityMessenger extends Activity {
 
-	private static final String TAG = "=== Map Demo ==>";
 	private MessengerService mService = null;
 	boolean mBound = false;;
-	private Button switchBtn;
-	private Button saveBtn;
-	private TextView infoTv;
+	private Button switchBtn, saveBtn;
+	private TextView infoTv, speedTv, distanceTv;
 	private Geography geography;
 	private GoogleMap map;
 	private boolean isGpsOk = false;
@@ -44,15 +44,6 @@ public class ActivityMessenger extends Activity {
 			mBound = true;
 
 			geography.whereAmI();
-
-			Log.e("point size", String.valueOf(mService.points.size()));
-
-			PolylineOptions polylineOptions = new PolylineOptions();
-
-			polylineOptions.color(Color.RED);
-			polylineOptions.width(5);
-			polylineOptions.addAll(mService.points);
-			map.addPolyline(polylineOptions);
 		}
 
 		public void onServiceDisconnected(ComponentName className) {
@@ -93,6 +84,7 @@ public class ActivityMessenger extends Activity {
 				switchAction();
 				mService.saveRecord();
 				mService.groupId++;
+				map.clear();
 			}
 		});
 	}
@@ -123,6 +115,8 @@ public class ActivityMessenger extends Activity {
 		switchBtn = (Button) findViewById(R.id.button1);
 		saveBtn = (Button) findViewById(R.id.button2);
 		infoTv = (TextView) findViewById(R.id.info);
+		speedTv = (TextView) findViewById(R.id.speed);
+		distanceTv = (TextView) findViewById(R.id.distance);
 		map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
 		map.setMyLocationEnabled(true);
 	}
@@ -130,6 +124,7 @@ public class ActivityMessenger extends Activity {
 	@Override
 	protected void onDestroy() {
 		Log.e("activity", "onDestroy");
+
 		// Unbind from the service
 		if (mBound) {
 			unbindService(mConnection);
@@ -154,16 +149,23 @@ public class ActivityMessenger extends Activity {
 	private LocationListener locationListener = new LocationListener() {
 
 		public void onLocationChanged(Location location) {
+
+			distanceTv.setText(mService.distance + "");
+			speedTv.setText(geography.speed + "");
+			
+			// move to center
 			map.moveCamera(CameraUpdateFactory.newLatLngZoom(
 					new LatLng(location.getLatitude(), location.getLongitude()), 16));
-			
-			Log.e("point size", String.valueOf(mService.points.size()));
 
+			map.clear();
+			
+			// draw polyline
 			PolylineOptions polylineOptions = new PolylineOptions();
+			List<LatLng> points = mService.points;
 
 			polylineOptions.color(Color.RED);
 			polylineOptions.width(5);
-			polylineOptions.addAll(mService.points);
+			polylineOptions.addAll(points);
 			map.addPolyline(polylineOptions);
 		}
 

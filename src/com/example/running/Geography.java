@@ -15,18 +15,15 @@ import com.google.android.gms.maps.model.LatLng;
 public class Geography {
 
 	private static final LatLng NKUT = new LatLng(23.979548, 120.696745);
-	private static final String TAG = "=== Map Demo ==>";
 	private LocationManager locationManager;
 	private String provider = LocationManager.GPS_PROVIDER; // 最佳資訊提供者
-//	private Context context;
 	private LocationListener locationListener;
 	private GpsStatus.Listener gpsListener;
 	public LatLng location; // 最後位置
 	public double speed;
 
-	public Geography(Context context, LocationListener locationListener, 
+	public Geography(Context context, LocationListener locationListener,
 			GpsStatus.Listener gpsListener) {
-//		this.context = context;
 		this.locationListener = locationListener;
 		this.gpsListener = gpsListener;
 		locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
@@ -34,21 +31,37 @@ public class Geography {
 
 	public void whereAmI() {
 		// 取得上次已知的位置
-		if (isGpsOpen()) {
-			Location location = locationManager.getLastKnownLocation(provider);
-			updateWithNewLocation(location);
+		Location location = locationManager.getLastKnownLocation(provider);
+		updateWithNewLocation(location);
+		locationManager.addGpsStatusListener(gpsListener);
 
-			// GPS Listener
-			locationManager.addGpsStatusListener(gpsListener);
+		// Location Listener
+		int minTime = 3000;// ms
+		int minDist = 3;// meter
+		locationManager.requestLocationUpdates(provider, minTime, minDist, locationListener);
+		// if (isGpsOpen()) {
+		//
+		// // GPS Listener
+		// } else {
+		// updateWithNewLocation(null);
+		// }
 
-			// Location Listener
-			int minTime = 5000;// ms
-			int minDist = 5;// meter
-			locationManager.requestLocationUpdates(provider, minTime, minDist, locationListener);
-		} else {
-			updateWithNewLocation(null);
-		}
+	}
 
+	public double getDistance(LatLng gp1, LatLng gp2)
+	{
+		double earthRadius = 3958.75;
+		double latDiff = Math.toRadians(gp2.latitude - gp1.latitude);
+		double lngDiff = Math.toRadians(gp2.longitude - gp1.longitude);
+		double a = Math.sin(latDiff / 2) * Math.sin(latDiff / 2) +
+				Math.cos(Math.toRadians(gp1.latitude)) *
+				Math.cos(Math.toRadians(gp2.latitude)) *
+				Math.sin(lngDiff / 2) * Math.sin(lngDiff / 2);
+		double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+		double distance = earthRadius * c;
+		int meterConversion = 1609;
+		
+		return distance * meterConversion;
 	}
 
 	public void stopRecord() {
@@ -84,7 +97,7 @@ public class Geography {
 			where = "No location found.";
 			this.location = NKUT;
 		}
-//		Log.e(TAG, where);
+		// Log.e(TAG, where);
 	}
 
 	public String getTimeString(long timeInMilliseconds) {

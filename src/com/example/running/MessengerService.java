@@ -27,6 +27,7 @@ public class MessengerService extends Service {
 	public boolean isPause; // 是否開始記錄
 	public int groupId;
 	public List<LatLng> points;
+	public double distance;
 
 	public class LocalBinder extends Binder {
 		MessengerService getService() {
@@ -77,7 +78,15 @@ public class MessengerService extends Service {
 			Log.e("緯度", String.valueOf(location.getLatitude()));
 			Log.e("經度", String.valueOf(location.getLongitude()));
 			
-			points.add(new LatLng(location.getLatitude(), location.getLatitude()));
+			points.add(new LatLng(location.getLatitude(), location.getLongitude()));
+			
+			int index = points.size() - 1;
+			if(index == 0) {
+				distance += geography.getDistance(points.get(index), points.get(index));
+			} else {
+				distance += geography.getDistance(points.get(index - 1), points.get(index));
+			}
+			
 		}
 
 		@Override
