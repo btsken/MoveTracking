@@ -8,7 +8,6 @@ import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
 
@@ -20,7 +19,6 @@ public class Geography {
 	private LocationListener locationListener;
 	private GpsStatus.Listener gpsListener;
 	public LatLng location; // 最後位置
-	public double speed;
 
 	public Geography(Context context, LocationListener locationListener,
 			GpsStatus.Listener gpsListener) {
@@ -39,13 +37,6 @@ public class Geography {
 		int minTime = 3000;// ms
 		int minDist = 3;// meter
 		locationManager.requestLocationUpdates(provider, minTime, minDist, locationListener);
-		// if (isGpsOpen()) {
-		//
-		// // GPS Listener
-		// } else {
-		// updateWithNewLocation(null);
-		// }
-
 	}
 
 	public double getDistance(LatLng gp1, LatLng gp2)
@@ -80,24 +71,11 @@ public class Geography {
 	}
 
 	public void updateWithNewLocation(Location location) {
-		String where = "";
 		if (location != null) {
 			this.location = new LatLng(location.getLatitude(), location.getLongitude());
-			this.speed = location.getSpeed();
-			long time = location.getTime();
-			String timeString = getTimeString(time);
-
-			where = "經度: " + this.location.longitude +
-					"\n緯度: " + this.location.latitude +
-					"\n速度: " + speed +
-					"\n時間: " + timeString +
-					"\nProvider: " + provider;
-
 		} else {
-			where = "No location found.";
 			this.location = NKUT;
 		}
-		// Log.e(TAG, where);
 	}
 
 	public String getTimeString(long timeInMilliseconds) {

@@ -36,6 +36,7 @@ public class ActivityMessenger extends Activity {
 	private Geography geography;
 	private GoogleMap map;
 	private boolean isGpsOk = false;
+	private static final int ZOOM = 18;
 
 	private ServiceConnection mConnection = new ServiceConnection() {
 		public void onServiceConnected(ComponentName className, IBinder service) {
@@ -44,6 +45,7 @@ public class ActivityMessenger extends Activity {
 			mBound = true;
 
 			geography.whereAmI();
+			map.moveCamera(CameraUpdateFactory.newLatLngZoom(geography.location, ZOOM));
 		}
 
 		public void onServiceDisconnected(ComponentName className) {
@@ -85,6 +87,7 @@ public class ActivityMessenger extends Activity {
 				mService.saveRecord();
 				mService.groupId++;
 				map.clear();
+				saveBtn.setEnabled(false);
 			}
 		});
 	}
@@ -93,6 +96,7 @@ public class ActivityMessenger extends Activity {
 		bindService(new Intent(this, MessengerService.class), mConnection,
 				Context.BIND_AUTO_CREATE);
 		geography = new Geography(this, locationListener, gpsListener);
+
 	}
 
 	private void switchAction() {
@@ -106,7 +110,6 @@ public class ActivityMessenger extends Activity {
 			}
 		} else {
 			pause();
-			saveBtn.setEnabled(false);
 			switchBtn.setText(R.string.start);
 		}
 	}
@@ -149,22 +152,23 @@ public class ActivityMessenger extends Activity {
 	private LocationListener locationListener = new LocationListener() {
 
 		public void onLocationChanged(Location location) {
-
-			distanceTv.setText(mService.distance + "");
-			speedTv.setText(geography.speed + "");
+			Log.e("activity", "onLocationChanged");
 			
+			distanceTv.setText(mService.distance + "");
+			speedTv.setText(mService.speed + "");
+
 			// move to center
 			map.moveCamera(CameraUpdateFactory.newLatLngZoom(
-					new LatLng(location.getLatitude(), location.getLongitude()), 16));
+					new LatLng(location.getLatitude(), location.getLongitude()), ZOOM));
 
 			map.clear();
-			
+
 			// draw polyline
 			PolylineOptions polylineOptions = new PolylineOptions();
 			List<LatLng> points = mService.points;
 
 			polylineOptions.color(Color.RED);
-			polylineOptions.width(5);
+			polylineOptions.width(7);
 			polylineOptions.addAll(points);
 			map.addPolyline(polylineOptions);
 		}
