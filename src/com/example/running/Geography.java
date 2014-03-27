@@ -19,6 +19,8 @@ public class Geography {
 	private LocationListener locationListener;
 	private GpsStatus.Listener gpsListener;
 	public LatLng location; // 最後位置
+	public double distance;
+	public double speed;
 
 	public Geography(Context context, LocationListener locationListener,
 			GpsStatus.Listener gpsListener) {
@@ -27,15 +29,15 @@ public class Geography {
 		locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
 	}
 
-	public void whereAmI() {
+	public void startRecord() {
 		// 取得上次已知的位置
 		Location location = locationManager.getLastKnownLocation(provider);
 		updateWithNewLocation(location);
 		locationManager.addGpsStatusListener(gpsListener);
 
 		// Location Listener
-		int minTime = 3000;// ms
-		int minDist = 3;// meter
+		int minTime = 2000;// ms
+		int minDist = 2;// meter
 		locationManager.requestLocationUpdates(provider, minTime, minDist, locationListener);
 	}
 
@@ -53,10 +55,6 @@ public class Geography {
 		int meterConversion = 1609;
 		
 		return distance * meterConversion;
-	}
-
-	public void stopRecord() {
-		locationManager.removeGpsStatusListener(gpsListener);
 	}
 
 	public boolean isGpsOpen() {

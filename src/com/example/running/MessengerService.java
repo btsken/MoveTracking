@@ -39,7 +39,7 @@ public class MessengerService extends Service {
 	public void recordLocation() {
 		if (geography.isGpsOpen()) {
 			isPause = false;
-			geography.whereAmI();
+			geography.startRecord();
 		} else {
 			Intent dialogIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
 			dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -49,7 +49,7 @@ public class MessengerService extends Service {
 
 	public void stopRecordLocation() {
 		isPause = true;
-		geography.stopRecord();
+//		geography.stopRecord();
 	}
 	
 	public void saveRecord() {

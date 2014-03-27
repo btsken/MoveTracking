@@ -1,26 +1,29 @@
 package com.example.running;
 
+import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.app.Activity;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationProvider;
 import android.os.Bundle;
-import android.os.IBinder;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.example.running.MessengerService.LocalBinder;
+import com.example.db.Route;
+import com.example.db.RouteHelper;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
@@ -29,41 +32,19 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 public class ActivityMessenger extends Activity {
 
-	private MessengerService mService = null;
 	boolean mBound = false;;
 	private Button switchBtn, saveBtn;
 	private TextView infoTv, speedTv, distanceTv;
 	private Geography geography;
 	private GoogleMap map;
+	public boolean isPause; // 是否開始記錄
 	private boolean isGpsOk = false;
 	private static final int ZOOM = 18;
-
-	private ServiceConnection mConnection = new ServiceConnection() {
-		public void onServiceConnected(ComponentName className, IBinder service) {
-			LocalBinder binder = (LocalBinder) service;
-			mService = binder.getService();
-			mBound = true;
-
-			geography.whereAmI();
-			map.moveCamera(CameraUpdateFactory.newLatLngZoom(geography.location, ZOOM));
-		}
-
-		public void onServiceDisconnected(ComponentName className) {
-			mBound = false;
-		}
-	};
-
-	public void play() {
-		if (mBound) {
-			mService.recordLocation();
-		}
-	}
-
-	public void pause() {
-		if (mBound) {
-			mService.stopRecordLocation();
-		}
-	}
+	private List<LatLng> points;
+	private RouteHelper routeHelper;
+	private int groupId;
+	private double distance;
+	private int sec;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -71,8 +52,14 @@ public class ActivityMessenger extends Activity {
 		setContentView(R.layout.activity_main);
 		Log.e("activity", "onCreate");
 		init();
-		findViews();
 
+		// 宣告Timer
+		Timer timer01 = new Timer();
+
+		// 設定Timer(task為執行內容，0代表立刻開始,間格1秒執行一次)
+		timer01.schedule(task, 0, 1000);
+
+		geography.startRecord();
 		switchBtn.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
@@ -83,34 +70,72 @@ public class ActivityMessenger extends Activity {
 		saveBtn.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
+				sec = 0;
 				switchAction();
-				mService.saveRecord();
-				mService.groupId++;
+				saveRecord();
 				map.clear();
 				saveBtn.setEnabled(false);
 			}
 		});
 	}
 
-	private void init() {
-		bindService(new Intent(this, MessengerService.class), mConnection,
-				Context.BIND_AUTO_CREATE);
-		geography = new Geography(this, locationListener, gpsListener);
-
-	}
-
 	private void switchAction() {
-		if (mService.isPause) {
-			if (mService.geography.isGpsOpen()) {
-				play();
+		if (isPause) {
+			if (geography.isGpsOpen()) {
+				recordLocation();
 				switchBtn.setText(R.string.stop);
 				saveBtn.setEnabled(true);
 			} else {
 				startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
 			}
 		} else {
-			pause();
+			isPause = true;
 			switchBtn.setText(R.string.start);
+		}
+	}
+
+	public void recordLocation() {
+		if (geography.isGpsOpen()) {
+			isPause = false;
+		} else {
+			Intent dialogIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+			dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			getApplication().startActivity(dialogIntent);
+		}
+	}
+
+	// TimerTask無法直接改變元件因此要透過Handler來當橋樑
+	private Handler handler = new Handler() {
+		public void handleMessage(Message msg) {
+			super.handleMessage(msg);
+			switch (msg.what) {
+			case 1:
+				// 計算目前已過分鐘數
+				int minius = sec / 60;
+				// 計算目前已過秒數
+				int seconds = sec % 60;
+				infoTv.setText(String.format("%02d", minius) + ":" + String.format("%02d", seconds));
+				break;
+			}
+		}
+	};
+
+	private TimerTask task = new TimerTask() {
+		@Override
+		public void run() {
+			if (!isPause) {
+				sec++;
+				Message message = new Message();
+				message.what = 1;
+				handler.sendMessage(message);
+			}
+		}
+
+	};
+
+	public void saveRecord() {
+		for (LatLng location : points) {
+			routeHelper.create(new Route(location.latitude, location.longitude, groupId));
 		}
 	}
 
@@ -121,19 +146,16 @@ public class ActivityMessenger extends Activity {
 		speedTv = (TextView) findViewById(R.id.speed);
 		distanceTv = (TextView) findViewById(R.id.distance);
 		map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
-		map.setMyLocationEnabled(true);
 	}
 
-	@Override
-	protected void onDestroy() {
-		Log.e("activity", "onDestroy");
-
-		// Unbind from the service
-		if (mBound) {
-			unbindService(mConnection);
-			mBound = false;
-		}
-		super.onDestroy();
+	private void init() {
+		findViews();
+		map.setMyLocationEnabled(true);
+		geography = new Geography(this, locationListener, gpsListener);
+		isPause = true;
+		routeHelper = new RouteHelper(this.getApplicationContext());
+		groupId = routeHelper.getMaxGroup();
+		points = new ArrayList<LatLng>();
 	}
 
 	@Override
@@ -141,36 +163,49 @@ public class ActivityMessenger extends Activity {
 		moveTaskToBack(true); // move back
 	}
 
+	private void trackToMe(double lat, double lng) {
+
+		points.add(new LatLng(lat, lng));
+
+		PolylineOptions polylineOpt = new PolylineOptions();
+		for (LatLng latlng : points) {
+			polylineOpt.add(latlng);
+		}
+
+		polylineOpt.color(Color.RED);
+
+		map.addPolyline(polylineOpt).setWidth(10);
+
+	}
+
 	@Override
 	protected void onResume() {
+
 		super.onResume();
-		if (mBound) {
-			Log.e("point size", String.valueOf(mService.points.size()));
-		}
 	}
 
 	private LocationListener locationListener = new LocationListener() {
 
 		public void onLocationChanged(Location location) {
-			Log.e("activity", "onLocationChanged");
-			
-			distanceTv.setText(mService.distance + "");
-			speedTv.setText(mService.speed + "");
-
 			// move to center
 			map.moveCamera(CameraUpdateFactory.newLatLngZoom(
 					new LatLng(location.getLatitude(), location.getLongitude()), ZOOM));
+			if (!isPause) {
+				Log.e("activity", "onLocationChanged");
 
-			map.clear();
+				trackToMe(location.getLatitude(), location.getLongitude());
 
-			// draw polyline
-			PolylineOptions polylineOptions = new PolylineOptions();
-			List<LatLng> points = mService.points;
+				DecimalFormat nf = new DecimalFormat("0.00");
+				speedTv.setText(nf.format(location.getSpeed()));
 
-			polylineOptions.color(Color.RED);
-			polylineOptions.width(7);
-			polylineOptions.addAll(points);
-			map.addPolyline(polylineOptions);
+				int index = points.size() - 1;
+				if (points.size() == 1) {
+					distance += geography.getDistance(points.get(0), points.get(0));
+				} else {
+					distance += geography.getDistance(points.get(index - 1), points.get(index));
+				}
+				distanceTv.setText(nf.format(distance));
+			}
 		}
 
 		@Override
