@@ -104,7 +104,6 @@ public class ActivityMessenger extends Activity {
 		}
 	}
 
-	// TimerTask無法直接改變元件因此要透過Handler來當橋樑
 	private Handler handler = new Handler() {
 		public void handleMessage(Message msg) {
 			super.handleMessage(msg);
@@ -190,6 +189,7 @@ public class ActivityMessenger extends Activity {
 			// move to center
 			map.moveCamera(CameraUpdateFactory.newLatLngZoom(
 					new LatLng(location.getLatitude(), location.getLongitude()), ZOOM));
+			
 			if (!isPause) {
 				Log.e("activity", "onLocationChanged");
 
@@ -221,13 +221,13 @@ public class ActivityMessenger extends Activity {
 		public void onStatusChanged(String provider, int status, Bundle extras) {
 			switch (status) {
 			case LocationProvider.OUT_OF_SERVICE:
-				infoTv.setText("gps OUT_OF_SERVICE");
+//				infoTv.setText("gps OUT_OF_SERVICE");
 				break;
 			case LocationProvider.TEMPORARILY_UNAVAILABLE:
-				infoTv.setText("gps TEMPORARILY_UNAVAILABLE");
+//				infoTv.setText("gps TEMPORARILY_UNAVAILABLE");
 				break;
 			case LocationProvider.AVAILABLE:
-				infoTv.setText("gps AVAILABLE");
+//				infoTv.setText("gps AVAILABLE");
 				break;
 			}
 		}
@@ -239,22 +239,22 @@ public class ActivityMessenger extends Activity {
 		public void onGpsStatusChanged(int event) {
 			switch (event) {
 			case GpsStatus.GPS_EVENT_STARTED:
-				infoTv.setText("gps 啟動");
+//				infoTv.setText("gps 啟動");
 				isGpsOk = false;
 				break;
 
 			case GpsStatus.GPS_EVENT_STOPPED:
-				infoTv.setText("gps 停止");
+//				infoTv.setText("gps 停止");
 				isGpsOk = false;
 				break;
 
 			case GpsStatus.GPS_EVENT_FIRST_FIX:
-				infoTv.setText("gps 定位成功");
+//				infoTv.setText("gps 定位成功");
 				isGpsOk = true;
 				break;
 
 			case GpsStatus.GPS_EVENT_SATELLITE_STATUS:
-				infoTv.setText("gps 衛星狀態改變");
+//				infoTv.setText("gps 衛星狀態改變");
 				isGpsOk = false;
 				break;
 			}

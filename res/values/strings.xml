@@ -8,5 +8,8 @@
     <string name="stop">暫停</string>
     <string name="open_gps">請開啟gps</string>
     <string name="end">儲存</string>
+    <string name="speed">速度：</string>
+    <string name="distance">距離：</string>
+    <string name="time">時間：</string>
 
 </resources>

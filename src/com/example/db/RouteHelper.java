@@ -34,8 +34,12 @@ public class RouteHelper implements IDbHelper<Route> {
 	public List<Route> getAll() {
 		Cursor cursor = routeDb.readAll(); // 取得SQLite類別的回傳值:Cursor物件
 		List<Route> list = new ArrayList<Route>();
+		
+		if(cursor == null) {
+			return list;
+		}
 
-		while (cursor != null && cursor.moveToNext()) {
+		while (cursor.moveToNext()) {
 			Route Route = new Route();
 			Route.latitude = cursor.getDouble(1);
 			Route.longitude = cursor.getDouble(2);
