@@ -1,6 +1,7 @@
 package com.example.running;
 
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.Locale;
 
 import android.content.Context;
@@ -10,6 +11,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 public class Geography {
 
@@ -81,4 +83,13 @@ public class Geography {
 		return format.format(timeInMilliseconds);
 	}
 
+	public PolylineOptions polylineOptionsFactory(List<LatLng> points, int color) {
+		PolylineOptions polylineOpt = new PolylineOptions();
+		for (LatLng latlng : points) {
+			polylineOpt.add(latlng);
+		}
+
+		polylineOpt.color(color);
+		return polylineOpt;
+	}
 }

@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.location.GpsStatus;
@@ -17,49 +16,83 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.Settings;
+import android.support.v4.app.Fragment;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
 import com.example.db.Route;
 import com.example.db.RouteHelper;
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.MapView;
+import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.PolylineOptions;
 
-public class ActivityMessenger extends Activity {
+public class RouteFragment extends Fragment {
 
-	boolean mBound = false;;
+	private MapView mMapView;
+	private GoogleMap map;
 	private Button switchBtn, saveBtn;
 	private TextView infoTv, speedTv, distanceTv;
+
 	private Geography geography;
-	private GoogleMap map;
-	public boolean isPause; // 是否開始記錄
-	private boolean isGpsOk = false;
-	private static final int ZOOM = 18;
-	private List<LatLng> points;
 	private RouteHelper routeHelper;
-	private int groupId;
+	
+	private boolean isPause; // 是否開始記錄
+	private static final int ZOOM = 18;
 	private double distance;
+	private Timer timer;
 	private int sec;
+	private int groupId;
+	private List<LatLng> points;
+
+	public static RouteFragment newInstance() {
+		return new RouteFragment();
+	}
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState) {
+	public View onCreateView(LayoutInflater inflater, ViewGroup container,
+			Bundle savedInstanceState) {
+
+		View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+
+		switchBtn = (Button) rootView.findViewById(R.id.button1);
+		saveBtn = (Button) rootView.findViewById(R.id.button2);
+		infoTv = (TextView) rootView.findViewById(R.id.info);
+		speedTv = (TextView) rootView.findViewById(R.id.speed);
+		distanceTv = (TextView) rootView.findViewById(R.id.distance);
+
+		mMapView = (MapView) rootView.findViewById(R.id.map);
+		mMapView.onCreate(savedInstanceState);
+		mMapView.onResume();// needed to get the map to display immediately
+
+		try {
+			MapsInitializer.initialize(getActivity());
+		} catch (GooglePlayServicesNotAvailableException e) {
+			e.printStackTrace();
+		}
+
+		map = mMapView.getMap();
+		return rootView;
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
-		Log.e("activity", "onCreate");
+
 		init();
 
-		// 宣告Timer
-		Timer timer01 = new Timer();
+	}
 
-		// 設定Timer(task為執行內容，0代表立刻開始,間格1秒執行一次)
-		timer01.schedule(task, 0, 1000);
-
-		geography.startRecord();
+	@Override
+	public void onActivityCreated(Bundle savedInstanceState) {
+		super.onActivityCreated(savedInstanceState);
+		setViews();
 		switchBtn.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
@@ -97,10 +130,11 @@ public class ActivityMessenger extends Activity {
 	public void recordLocation() {
 		if (geography.isGpsOpen()) {
 			isPause = false;
+
 		} else {
 			Intent dialogIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
 			dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-			getApplication().startActivity(dialogIntent);
+			getActivity().getApplication().startActivity(dialogIntent);
 		}
 	}
 
@@ -129,7 +163,6 @@ public class ActivityMessenger extends Activity {
 				handler.sendMessage(message);
 			}
 		}
-
 	};
 
 	public void saveRecord() {
@@ -138,49 +171,34 @@ public class ActivityMessenger extends Activity {
 		}
 	}
 
-	private void findViews() {
-		switchBtn = (Button) findViewById(R.id.button1);
-		saveBtn = (Button) findViewById(R.id.button2);
-		infoTv = (TextView) findViewById(R.id.info);
-		speedTv = (TextView) findViewById(R.id.speed);
-		distanceTv = (TextView) findViewById(R.id.distance);
-		map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
+	private void setViews() {
+		map.setMyLocationEnabled(true);
 	}
 
 	private void init() {
-		findViews();
-		map.setMyLocationEnabled(true);
-		geography = new Geography(this, locationListener, gpsListener);
+		geography = new Geography(getActivity(), locationListener, gpsListener);
 		isPause = true;
-		routeHelper = new RouteHelper(this.getApplicationContext());
+		routeHelper = new RouteHelper(getActivity());
 		groupId = routeHelper.getMaxGroup();
 		points = new ArrayList<LatLng>();
-	}
-
-	@Override
-	public void finish() {
-		moveTaskToBack(true); // move back
+		geography.startRecord();
+		timer = new Timer();
+		// 設定Timer(task為執行內容，0代表立刻開始,間格1秒執行一次)
+		timer.schedule(task, 0, 1000);
 	}
 
 	private void trackToMe(double lat, double lng) {
 
 		points.add(new LatLng(lat, lng));
 
-		PolylineOptions polylineOpt = new PolylineOptions();
-		for (LatLng latlng : points) {
-			polylineOpt.add(latlng);
-		}
+		// PolylineOptions polylineOpt = new PolylineOptions();
+		// for (LatLng latlng : points) {
+		// polylineOpt.add(latlng);
+		// }
+		//
+		// polylineOpt.color(Color.RED);
 
-		polylineOpt.color(Color.RED);
-
-		map.addPolyline(polylineOpt).setWidth(10);
-
-	}
-
-	@Override
-	protected void onResume() {
-
-		super.onResume();
+		map.addPolyline(geography.polylineOptionsFactory(points, Color.RED)).setWidth(10);
 	}
 
 	private LocationListener locationListener = new LocationListener() {
@@ -189,7 +207,7 @@ public class ActivityMessenger extends Activity {
 			// move to center
 			map.moveCamera(CameraUpdateFactory.newLatLngZoom(
 					new LatLng(location.getLatitude(), location.getLongitude()), ZOOM));
-			
+
 			if (!isPause) {
 				Log.e("activity", "onLocationChanged");
 
@@ -221,13 +239,13 @@ public class ActivityMessenger extends Activity {
 		public void onStatusChanged(String provider, int status, Bundle extras) {
 			switch (status) {
 			case LocationProvider.OUT_OF_SERVICE:
-//				infoTv.setText("gps OUT_OF_SERVICE");
+				// infoTv.setText("gps OUT_OF_SERVICE");
 				break;
 			case LocationProvider.TEMPORARILY_UNAVAILABLE:
-//				infoTv.setText("gps TEMPORARILY_UNAVAILABLE");
+				// infoTv.setText("gps TEMPORARILY_UNAVAILABLE");
 				break;
 			case LocationProvider.AVAILABLE:
-//				infoTv.setText("gps AVAILABLE");
+				// infoTv.setText("gps AVAILABLE");
 				break;
 			}
 		}
@@ -239,25 +257,46 @@ public class ActivityMessenger extends Activity {
 		public void onGpsStatusChanged(int event) {
 			switch (event) {
 			case GpsStatus.GPS_EVENT_STARTED:
-//				infoTv.setText("gps 啟動");
-				isGpsOk = false;
+				// infoTv.setText("gps 啟動");
 				break;
 
 			case GpsStatus.GPS_EVENT_STOPPED:
-//				infoTv.setText("gps 停止");
-				isGpsOk = false;
+				// infoTv.setText("gps 停止");
 				break;
 
 			case GpsStatus.GPS_EVENT_FIRST_FIX:
-//				infoTv.setText("gps 定位成功");
-				isGpsOk = true;
+				// infoTv.setText("gps 定位成功");
 				break;
 
 			case GpsStatus.GPS_EVENT_SATELLITE_STATUS:
-//				infoTv.setText("gps 衛星狀態改變");
-				isGpsOk = false;
+				// infoTv.setText("gps 衛星狀態改變");
 				break;
 			}
 		}
 	};
+
+	@Override
+	public void onResume() {
+		super.onResume();
+		mMapView.onResume();
+	}
+
+	@Override
+	public void onPause() {
+		super.onPause();
+		mMapView.onPause();
+	}
+
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		mMapView.onDestroy();
+		timer.cancel();
+	}
+
+	@Override
+	public void onLowMemory() {
+		super.onLowMemory();
+		mMapView.onLowMemory();
+	}
 }
