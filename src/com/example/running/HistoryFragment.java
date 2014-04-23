@@ -13,7 +13,7 @@ import com.google.android.gms.maps.MapsInitializer;
 
 public class HistoryFragment extends Fragment {
 	
-	private MapView mMapView;
+	private MapView mapView;
 	private GoogleMap map;
 
 	public static HistoryFragment newInstance() {
@@ -26,9 +26,9 @@ public class HistoryFragment extends Fragment {
 
 		View rootView = inflater.inflate(R.layout.fragment_history, container, false);
 
-		mMapView = (MapView) rootView.findViewById(R.id.map);
-		mMapView.onCreate(savedInstanceState);
-		mMapView.onResume();// needed to get the map to display immediately
+		mapView = (MapView) rootView.findViewById(R.id.map);
+		mapView.onCreate(savedInstanceState);
+		mapView.onResume();// needed to get the map to display immediately
 
 		try {
 			MapsInitializer.initialize(getActivity());
@@ -36,7 +36,7 @@ public class HistoryFragment extends Fragment {
 			e.printStackTrace();
 		}
 
-		map = mMapView.getMap();
+		map = mapView.getMap();
 		return rootView;
 	}
 	
@@ -49,24 +49,24 @@ public class HistoryFragment extends Fragment {
 	@Override
 	public void onResume() {
 		super.onResume();
-		mMapView.onResume();
+		mapView.onResume();
 	}
 
 	@Override
 	public void onPause() {
 		super.onPause();
-		mMapView.onPause();
+		mapView.onPause();
 	}
 
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
-		mMapView.onDestroy();
+		mapView.onDestroy();
 	}
 
 	@Override
 	public void onLowMemory() {
 		super.onLowMemory();
-		mMapView.onLowMemory();
+		mapView.onLowMemory();
 	}
 }
